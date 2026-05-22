@@ -1,0 +1,34 @@
+{
+  "name": "understanding-prime-env",
+  "version": "0.1.0",
+  "description": "Generate a rich, self-contained HTML report explaining any Prime Intellect verifiers environment.",
+  "keywords": [
+    "prime-intellect",
+    "verifiers",
+    "environments",
+    "rl",
+    "claude-skill",
+    "cursor",
+    "ai-tools"
+  ],
+  "author": {
+    "name": "Vidit Ostwal",
+    "email": "viditostwal@gmail.com"
+  },
+  "license": "MIT",
+  "repository": {
+    "type": "git",
+    "url": "git+https://github.com/Vidit-Ostwal/understanding-prime-env.git"
+  },
+  "bin": {
+    "understanding-prime-env": "bin/install.js"
+  },
+  "files": [
+    "bin/",
+    "skills/",
+    ".claude-plugin/"
+  ],
+  "engines": {
+    "node": ">=16"
+  }
+}
