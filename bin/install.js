@@ -7,7 +7,7 @@ const path = require('path');
 const os = require('os');
 const readline = require('readline');
 
-const SKILL_NAME = 'understand-environment';
+const SKILL_NAME = 'understand-prime-env';
 const PACKAGE_ROOT = path.join(__dirname, '..');
 const SKILL_MD_PATH = path.join(PACKAGE_ROOT, 'skills', SKILL_NAME, 'SKILL.md');
 
@@ -65,7 +65,7 @@ function installCursor() {
   // Cursor MDC format: YAML front-matter + markdown body
   const mdc = [
     '---',
-    `description: ${SKILL_NAME} — generate HTML overview for a Prime Intellect verifiers environment`,
+    `description: understand-prime-env — generate HTML overview for a Prime Intellect verifiers environment`,
     'globs:',
     '  - "**/*.py"',
     'alwaysApply: false',
