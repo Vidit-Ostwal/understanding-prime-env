@@ -1,0 +1,16 @@
+{
+  "name": "understanding-prime-env",
+  "description": "Generate a rich, self-contained HTML report that fully explains any Prime Intellect verifiers environment — dataset, reward functions, rollout logic, and config parameters.",
+  "version": "0.1.0",
+  "author": {
+    "name": "Vidit Ostwal",
+    "email": "viditostwal@gmail.com"
+  },
+  "keywords": [
+    "prime-intellect",
+    "verifiers",
+    "environments",
+    "rl",
+    "training"
+  ]
+}
