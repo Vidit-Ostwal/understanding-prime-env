@@ -1,262 +1,285 @@
 ---
 name: understand-prime-env
-description: Generate a rich, self-contained HTML report that fully explains a Prime Intellect verifiers environment. Use this skill any time the user asks to understand, explain, document, visualize, or explore a verifiers environment — even if they just say "what does this environment do?", "explain this env", "give me an overview", or "generate an HTML for this environment". The skill reads the Python source files in the current directory, extracts the raw dataset, reward functions, and rollout logic, and writes a visually stunning gamified HTML file to the environment folder.
+description: Generate a rich, self-contained HTML report that fully explains a Prime Intellect verifiers environment. Use this skill any time the user asks to understand, explain, document, visualize, or explore a verifiers environment — even if they just say "what does this environment do?", "explain this env", "give me an overview", or "generate an HTML for this environment". The skill reads the Python source files in the current directory, extracts the dataset, reward functions, and rollout logic, and writes a visually stunning infographic-style HTML file to the environment folder.
 ---
 
 # Understand Prime Environment
 
 ## Goal
 
-Produce a single self-contained HTML file (`environment_overview.html`). A researcher opens it and sees a **stack of 4 cards** — like a physical deck — each one peeking out behind the one in front. They click through the deck, one card at a time, in a satisfying progressive reveal. Each card is one chapter of the story. The whole experience should feel like flipping through a beautifully designed research brief.
+Produce a single self-contained `environment_overview.html`. An ML researcher opens it and **gets the full picture in under 10 seconds** — no reading required. The design is infographic-first: diagrams, flow charts, and big numbers dominate. Text exists only to label what the visuals show. Tapping any section slides open a detail drawer with the full technical depth.
+
+The experience has two layers:
+1. **Scan layer** — the full page, visible immediately. Every section is a visual unit: a flow diagram, a metric cluster, a reward breakdown chart. Labels are short. Numbers are big. The researcher understands the environment without reading a word.
+2. **Drill layer** — tap any section → a smooth panel slides in from the right with complete technical detail: exact field names, regex patterns, formula, full example row.
 
 ---
 
 ## Step 1 — Read the source
 
-Read **every `.py` file** in the current directory. Also read `pyproject.toml` and `README.md` if they exist. Do not skip helper files — reward logic is often split across modules (e.g. `*_checks.py`, `*_prompts.py`). Read everything before writing a single line of HTML.
+Read **every `.py` file** in the current directory. Also read `pyproject.toml` and `README.md` if present. Do not skip helper files — reward logic is often split across modules (`*_checks.py`, `*_prompts.py`, etc.). Read everything before writing a single line of HTML.
 
-Extract exactly four things:
+Extract the following. Be precise — do not invent values:
 
-### Card 1 — Environment
-- Name, and one punchy paragraph (3–4 sentences) describing what task this trains a model to do
-- GitHub URL if found anywhere in source or README — if not found, omit entirely
-- 3–5 stat chips: dataset size, reward count, turn count, task type, etc.
+### A — Identity
+- Environment name
+- One-line task description (what skill does this train?)
+- GitHub URL only if found verbatim in source or README — otherwise omit entirely
+- 3–5 key stats: dataset size, number of rewards, number of turns, task type, etc.
 
-### Card 2 — Dataset
-- Where the data comes from: HuggingFace dataset name + split, hardcoded list, generator, etc. — one line
-- Every field in a data row: name, type, purpose
-- One complete example row with every field shown in full — real values if available, otherwise synthesize one that is indistinguishable from real (exact field names, value formats, constraints)
+### B — Dataset
+- Source: HuggingFace dataset + split, hardcoded list, or generator — one line
+- Every field: name, type, purpose
+- One complete real example row — all fields, real values, nothing truncated
 
-### Card 3 — Rewards
-- Every reward function: name, exactly what it checks, precisely what makes it score 0 vs 1 (and any partial values)
-- Any thresholds, regex patterns, or edge cases a model writer needs to know
-- If rewards combine into a final score: the exact formula
+### C — Rewards
+- Every reward function: name, what it checks, what earns 0 vs 1 (and any partials), any thresholds or regex
+- If rewards combine: the exact formula
 
-### Card 4 — Rollout
-- Step-by-step theoretical trace of one example running end-to-end:
-  1. How the raw row becomes the prompt the model sees
-  2. What the model is expected to produce
-  3. How each reward fires on the output
-  4. How the final score is computed
-  5. What a perfect response looks like vs a zero-score response
+### D — Rollout
+- How raw row → prompt (exact template if present)
+- What the model is expected to output
+- How each reward fires on a sample output
+- How final score is computed
+- What a perfect response looks like vs a zero-score response
 
 ---
 
 ## Step 2 — Generate the HTML
 
-Write a single **self-contained** HTML file to `./environment_overview.html`. Zero external dependencies — all CSS and JS inline.
+Write a single **self-contained** HTML file. Zero external dependencies — all CSS and JS inline. No framework. No CDN.
 
 ---
 
-### The Core Mechanic — Card Stack Reveal
+### Layout
 
-The entire UI is a **centered card deck**. All four cards occupy the same position. The active card is front and center at full size. Cards behind it peek out — each one slightly smaller, slightly lower, slightly darker — giving the illusion of a physical stack.
+Full-page dark canvas. A single centered column, `max-width: 760px`, generous vertical padding. No sidebar. No nav. No tabs.
+
+The page has exactly **four visual sections**, stacked vertically, each separated by `60px` of breathing room:
 
 ```
-         ░░░░░░░░░░░░░░░░  ← Card 4 (furthest back, barely visible)
-       ▒▒▒▒▒▒▒▒▒▒▒▒▒▒▒▒▒▒  ← Card 3
-     ▓▓▓▓▓▓▓▓▓▓▓▓▓▓▓▓▓▓▓▓  ← Card 2
-   ██████████████████████████  ← Card 1 (active, full size, full opacity)
+[HEADER]          — name, one-line description, stat chips, GitHub pill
+[DATASET]         — schema diagram + tap to see full example row
+[REWARDS]         — horizontal bar chart of reward functions + tap for detail
+[ROLLOUT]         — horizontal flow diagram → tap any node for step detail
 ```
 
-Clicking anywhere on the active card — or the "Continue →" button — triggers the reveal: the active card flies out (slides left + slight rotation + fade), and the next card scales up to the front with a spring animation. A progress indicator shows position (● ● ○ ○).
-
-When card 4 is shown, "Continue →" becomes "Done ✓" and clicking it does nothing (or fades the stack out gracefully).
+Each section is a self-contained card. Each card has a **tap target** — the whole card or a labeled "See details →" affordance — that opens a detail drawer.
 
 ---
 
 ### Visual Design
 
-**Background:** Full-viewport dark canvas.
+**Background:**
 ```css
 body {
-  background: #07090f;
+  background: #080b12;
   background-image:
-    radial-gradient(ellipse at 20% 20%, rgba(168,85,247,0.06) 0%, transparent 50%),
-    radial-gradient(ellipse at 80% 80%, rgba(34,211,238,0.04) 0%, transparent 50%);
+    radial-gradient(ellipse at 15% 0%, rgba(99,102,241,0.07) 0%, transparent 45%),
+    radial-gradient(ellipse at 85% 100%, rgba(20,184,166,0.05) 0%, transparent 45%);
   min-height: 100vh;
-  display: flex;
-  flex-direction: column;
-  align-items: center;
-  justify-content: center;
+  font-family: 'SF Mono', 'Fira Code', ui-monospace, monospace;
+  color: #e2e8f0;
 }
 ```
 
 **Card base:**
 ```css
-.card {
-  position: absolute;
-  width: min(600px, 90vw);
+.section-card {
   background: #0d1117;
-  border-radius: 24px;
-  padding: 40px 44px 36px;
-  transform-origin: center bottom;
-  will-change: transform, opacity;
+  border: 1px solid rgba(255,255,255,0.07);
+  border-radius: 16px;
+  padding: 28px 32px;
+  cursor: pointer;
+  transition: border-color 0.2s ease;
 }
+.section-card:hover { border-color: rgba(255,255,255,0.15); }
 ```
 
-**Stack offset** (CSS, applied via `data-depth` attribute 0–3, 0 = active):
+**Section accent colors** — used for borders, labels, highlights, chart fills:
 ```
-depth 0: scale(1.00)   translateY(0px)    opacity: 1     (active)
-depth 1: scale(0.96)   translateY(18px)   opacity: 0.65  z-index: -1
-depth 2: scale(0.92)   translateY(36px)   opacity: 0.35  z-index: -2
-depth 3: scale(0.88)   translateY(54px)   opacity: 0.15  z-index: -3
-```
-
-Each card has a unique accent. Apply via a CSS custom property `--accent` and `--glow` set on the card element itself. The gradient border and glow use this accent.
-
-```
-Card 1:  --accent: #a855f7   --glow: rgba(168,85,247,0.3)   (purple)
-Card 2:  --accent: #22d3ee   --glow: rgba(34,211,238,0.3)   (cyan)
-Card 3:  --accent: #f59e0b   --glow: rgba(245,158,11,0.3)   (amber)
-Card 4:  --accent: #f43f5e   --glow: rgba(244,63,94,0.3)    (rose)
-```
-
-**Gradient border** on the active card only:
-```css
-.card[data-depth="0"] {
-  box-shadow:
-    0 0 0 1.5px var(--accent),
-    0 0 60px var(--glow),
-    0 32px 80px rgba(0,0,0,0.6);
-}
-.card[data-depth="1"],
-.card[data-depth="2"],
-.card[data-depth="3"] {
-  box-shadow: 0 0 0 1px rgba(255,255,255,0.06);
-}
+Header / Identity:  #6366f1  (indigo)
+Dataset:            #14b8a6  (teal)
+Rewards:            #f59e0b  (amber)
+Rollout:            #f43f5e  (rose)
 ```
 
 **Typography:**
-```css
-font-family: -apple-system, 'SF Pro Display', 'Helvetica Neue', sans-serif;
-font-family: ui-monospace, 'Cascadia Code', 'Fira Code', monospace; /* code only */
-```
+- Section label: `0.65rem`, accent color, `letter-spacing: 0.12em`, uppercase, `font-weight: 500`
+- Section title: `1.1rem`, white, `font-weight: 700`
+- Body / labels: `0.8rem`, `#64748b`
+- Big numbers / diagram nodes: `1.6–2.4rem`, white or accent, `font-weight: 800`
 
 ---
 
-### Card Content Specs
-
-Each card has the same shell structure:
+### Section 1 — Header
 
 ```
-┌────────────────────────────────────────────┐
-│  LABEL (0.65rem, accent, caps, tracking)   │
-│  TITLE (1.6rem, 700, white)                │
-│  ─────────────────────────────────────     │
-│                                            │
-│  [BODY — unique per card, see below]       │
-│                                            │
-│  ────────────────────────────────────────  │
-│  [progress dots]    [Continue → button]    │
-└────────────────────────────────────────────┘
+┌─────────────────────────────────────────────────────┐
+│  PRIME INTELLECT ENVIRONMENT                        │
+│  EnvironmentName                    [↗ GitHub]      │
+│  One-line task description                          │
+│  ─────────────────────────────────────────────────  │
+│  [42k rows]  [3 rewards]  [2 turns]  [Math QA]     │
+└─────────────────────────────────────────────────────┘
 ```
 
-**Progress dots:** 4 dots, `width: 7px height: 7px border-radius: 50%`. Active dot: accent color, `width: 20px border-radius: 4px` (pill). Inactive: `rgba(255,255,255,0.15)`. Transition: `width 0.3s ease`.
+- Env name: `2rem`, `font-weight: 800`, white. Monospace.
+- Description: `0.85rem`, `#94a3b8`, `line-height: 1.5`. Below the name.
+- GitHub pill: only if URL was found. `background: rgba(99,102,241,0.1)`, `border: 1px solid rgba(99,102,241,0.3)`, `color: #a5b4fc`, `border-radius: 99px`, `padding: 4px 12px`, `font-size: 0.73rem`. Hover: border and color shift to solid indigo.
+- Stat chips: row of 3–5 pills. `background: rgba(99,102,241,0.08)`, `border: 1px solid rgba(99,102,241,0.18)`, `color: #a5b4fc`, `border-radius: 6px`, `padding: 5px 12px`, `font-size: 0.75rem`, `font-weight: 600`. Label on top in `0.6rem` muted caps, value below in `0.85rem` white.
 
-**Continue button:** `background: var(--accent)`, `color: #000`, `font-weight: 700`, `font-size: 0.82rem`, `border-radius: 99px`, `padding: 8px 20px`, `border: none`, `cursor: pointer`. Hover: `opacity: 0.85`.
+No drawer for this section. Static.
 
 ---
 
-#### Card 1 Body — Environment
+### Section 2 — Dataset (tappable)
 
-- **Env name**: `font-size: 1.6rem`, `font-weight: 800`, white
-- **Description**: 3–4 sentences, `font-size: 0.9rem`, `color: #94a3b8`, `line-height: 1.65`, `margin: 14px 0`
-- **GitHub link** (only if URL was found in source): pill button — `background: rgba(255,255,255,0.05)`, `border: 1px solid rgba(255,255,255,0.1)`, `color: #e2e8f0`, `border-radius: 99px`, `padding: 5px 14px`, `font-size: 0.78rem`. Shows `↗ GitHub`. Hover: `border-color: var(--accent)`, `color: var(--accent)`. If no URL found, this element does not exist.
-- **Stat chips**: row of 3–5 pills. `background: rgba(168,85,247,0.08)`, `border: 1px solid rgba(168,85,247,0.2)`, `color: #c4b5fd`, `border-radius: 99px`, `padding: 4px 11px`, `font-size: 0.73rem`
+**Scan face** — a visual schema diagram:
+
+```
+SOURCE ──────────────────────────────────────────────
+  HuggingFace · openai/gsm8k · train split
+
+FIELDS ──────────────────────────────────────────────
+  [question]──str──────────[answer]──str
+              [level]──int
+              [subject]──str
+```
+
+Render fields as connected pills in a small horizontal/vertical node graph. Each pill: `background: rgba(20,184,166,0.08)`, `border: 1px solid rgba(20,184,166,0.2)`, `border-radius: 6px`, `padding: 4px 10px`. Field name in teal monospace `0.75rem`, type in muted `0.65rem`. Connect them with SVG lines (stroke `rgba(20,184,166,0.2)`, stroke-width 1).
+
+At the bottom of the card, a muted "See example row →" in `0.72rem` teal.
+
+**Detail drawer content** (slides in on tap — see Drawer spec below):
+
+- `EXAMPLE ROW` label
+- Every field displayed as: field name (teal monospace) + value (white). Long text in a soft box — `background: rgba(255,255,255,0.03)`, `border-radius: 6px`, `padding: 8px 12px`. Nothing truncated.
+- `FIELD GUIDE` label, then each field one per line: name · type · purpose sentence.
 
 ---
 
-#### Card 2 Body — Dataset
+### Section 3 — Rewards (tappable)
 
-**Source line** — monospace, one line:
+**Scan face** — a horizontal stacked bar chart:
+
+Each reward function gets one horizontal bar. The bar represents its contribution to the final score (equal weight if not specified). Left side: reward name in amber monospace `0.8rem`. Right side: bar — `height: 8px`, `border-radius: 4px`, `background: linear-gradient(90deg, #f59e0b, #fbbf24)`. Below the bar: one-phrase description in `0.65rem` muted text.
+
+If there's a final score formula, show it below the bars in a formula chip:
+`background: rgba(245,158,11,0.08)`, `border: 1px solid rgba(245,158,11,0.2)`, `border-radius: 8px`, `padding: 8px 14px`, amber monospace `0.82rem`.
+
+At the bottom: "See reward logic →" in `0.72rem` amber.
+
+**Detail drawer content:**
+
+For each reward, a block:
 ```
-HuggingFace · openai/gsm8k · train split
-```
-Style: `background: rgba(34,211,238,0.05)`, `border-left: 3px solid #22d3ee`, `padding: 8px 14px`, `border-radius: 0 6px 6px 0`, `font-size: 0.82rem`, `color: #67e8f9`
-
-**Field list** — compact, beneath the source line:
-Each field on one line: `field_name` in cyan monospace + `·` + type/purpose in muted text. `font-size: 0.8rem`, `line-height: 1.8`.
-
-**Example row** — the main content:
-A clean structured display. Label: `EXAMPLE ROW` in `0.65rem` cyan caps. Then each field:
-- Field name: cyan monospace, `font-size: 0.78rem`
-- Value: white, `font-size: 0.82rem`, `line-height: 1.5`
-- Long text values (prompts, answers): wrapped in a soft box — `background: rgba(255,255,255,0.03)`, `border-radius: 6px`, `padding: 8px 12px`, `margin-top: 2px`
-- Full content — never truncated
-
----
-
-#### Card 3 Body — Rewards
-
-For each reward function, a compact block:
-
-```
-format_reward                               [float]
+format_reward                        [float 0–1]
+─────────────────────────────────────────────────
 Checks response contains <answer>…</answer>
-  ✗ 0  tags absent or inner content non-numeric
-  ✓ 1  tags present, content is a valid integer
-```
 
-- Name: monospace, `color: #fcd34d`, `font-weight: 600`, `font-size: 0.88rem`
-- `[float]` badge: `font-size: 0.68rem`, `color: #6b7280`, right-aligned via `display: flex justify-content: space-between`
-- Description line: `color: #94a3b8`, `font-size: 0.8rem`, `margin: 4px 0 6px`
-- `✗ 0` / `✓ 1` lines: `font-size: 0.78rem`, `✗` in `#f87171`, `✓` in `#4ade80`, text in `#94a3b8`
-- Block: `background: rgba(245,158,11,0.05)`, `border: 1px solid rgba(245,158,11,0.12)`, `border-radius: 10px`, `padding: 12px 14px`, `margin-bottom: 10px`
+  ✗  0   Tags absent, or inner content non-numeric
+  ✓  1   Tags present, inner content is valid integer
 
-If composite formula exists — after all reward blocks:
+  Pattern: <answer>(\d+)</answer>
 ```
-background: rgba(245,158,11,0.08)
-border: 1px solid rgba(245,158,11,0.25)
-border-radius: 8px · padding: 10px 14px
-font-family: monospace · color: #fcd34d · font-size: 0.85rem
-```
+- Name: amber monospace, `font-weight: 700`, `0.88rem`
+- `[float 0–1]` badge: `0.65rem`, `#6b7280`, right-aligned via flex
+- Description: `0.8rem`, `#94a3b8`
+- ✗ / ✓ lines: `0.78rem`. ✗ in `#f87171`, ✓ in `#4ade80`, text in `#94a3b8`
+- Pattern/threshold: monospace, `0.75rem`, `#64748b`
+- Block: `background: rgba(245,158,11,0.04)`, `border: 1px solid rgba(245,158,11,0.1)`, `border-radius: 10px`, `padding: 12px 14px`, `margin-bottom: 10px`
 
 ---
 
-#### Card 4 Body — Rollout
+### Section 4 — Rollout (tappable)
 
-Numbered steps. Each step:
+**Scan face** — a horizontal pipeline flow diagram:
 
 ```
-  01
-  Data → Prompt
-  The problem field is inserted into "Solve step by step…"
-  as the user message. No system prompt.
+[DATA ROW] ──▶ [PROMPT] ──▶ [MODEL] ──▶ [REWARDS] ──▶ [SCORE]
 ```
 
-- Number: `font-size: 2rem`, `font-weight: 800`, `color: var(--accent)`, `opacity: 0.25`, `line-height: 1`
-- Title: `font-size: 0.88rem`, `font-weight: 700`, `color: #f1f5f9`, `margin: 2px 0`
-- Description: `font-size: 0.8rem`, `color: #94a3b8`, `line-height: 1.55`
-- Left connector: `border-left: 2px solid rgba(244,63,94,0.15)`, `padding-left: 16px`, `margin-left: 12px`, except on last step
-- Between steps: `margin-bottom: 16px`
+Each node: rounded rect, `background: rgba(244,63,94,0.08)`, `border: 1px solid rgba(244,63,94,0.2)`, `border-radius: 10px`, `padding: 10px 16px`. Node label: rose monospace `0.8rem` bold. Below each node: 1 short phrase (≤6 words) in `0.65rem` muted. Arrows: SVG `▶` in `rgba(244,63,94,0.4)`.
 
-Always 5 steps: Data→Prompt · Model Response · Reward Evaluation · Score Computation · Perfect vs Zero.
+On narrow viewports, collapse to vertical with connecting arrows below each node.
+
+At the bottom: "Trace an example →" in `0.72rem` rose.
+
+**Detail drawer content:**
+
+5 numbered steps. Each:
+- Step number: `2rem`, `font-weight: 800`, rose, `opacity: 0.2`
+- Step title: `0.9rem`, white, `font-weight: 700`
+- Description: `0.82rem`, `#94a3b8`, `line-height: 1.6`
+- Left border: `border-left: 2px solid rgba(244,63,94,0.15)`, `padding-left: 16px`, `margin-left: 10px` (omit on last step)
+- `margin-bottom: 20px`
+
+Steps are always:
+1. **Data → Prompt** — how the raw row becomes the exact prompt the model sees (include template if found)
+2. **Model Response** — what the model is expected to produce (format, tags, structure)
+3. **Reward Evaluation** — how each reward fires on a sample output; show scores for a real example
+4. **Score Computation** — the exact formula and resulting score
+5. **Perfect vs Zero** — what earns a full score vs what earns zero; concrete contrasting examples
 
 ---
 
-### Reveal Animation
+### Detail Drawer
+
+A panel that slides in from the **right edge** of the viewport, overlaying the page.
 
 ```css
-@keyframes flyOut {
-  to { transform: translateX(-120%) rotate(-8deg); opacity: 0; }
+.drawer {
+  position: fixed;
+  top: 0; right: 0;
+  width: min(480px, 95vw);
+  height: 100vh;
+  background: #0d1117;
+  border-left: 1px solid rgba(255,255,255,0.1);
+  padding: 32px 28px;
+  overflow-y: auto;
+  transform: translateX(100%);
+  transition: transform 0.35s cubic-bezier(0.4, 0, 0.2, 1);
+  z-index: 100;
 }
-@keyframes riseUp {
-  from { transform: scale(0.96) translateY(18px); opacity: 0.65; }
-  to   { transform: scale(1) translateY(0); opacity: 1; }
-}
+.drawer.open { transform: translateX(0); }
 ```
 
-On click:
-1. Active card: `flyOut 0.45s cubic-bezier(0.4, 0, 0.2, 1) forwards`
-2. After 80ms: next card transitions from depth-1 styles to depth-0 styles — `riseUp 0.5s cubic-bezier(0.34, 1.56, 0.64, 1)` (spring overshoot)
-3. All remaining cards shift their `data-depth` attributes down by 1
-4. Progress dots update with a `0.3s` width transition
+**Backdrop:** `position: fixed; inset: 0; background: rgba(0,0,0,0.5); z-index: 99` — fades in with `opacity 0.3s`. Clicking it closes the drawer.
 
-Guard all animations:
+**Close button:** `×` in the top-right of the drawer. `font-size: 1.1rem`, `color: #475569`, hover rose. Keyboard: `Escape` closes.
+
+**Drawer header:**
+- Section label (e.g., `DATASET DETAIL`) in accent color, `0.65rem` caps
+- Section name in white `1.1rem` bold
+- Thin `border-bottom: 1px solid rgba(255,255,255,0.07)`, `padding-bottom: 16px`, `margin-bottom: 20px`
+
+Scroll within the drawer. The rest of the page does not scroll while drawer is open (`body { overflow: hidden }`).
+
+---
+
+### Motion
+
+```css
+@keyframes fadeSlideIn {
+  from { opacity: 0; transform: translateY(12px); }
+  to   { opacity: 1; transform: translateY(0); }
+}
+.section-card {
+  animation: fadeSlideIn 0.4s ease both;
+}
+/* Stagger via animation-delay: 0s, 0.08s, 0.16s, 0.24s on the four sections */
+```
+
+Drawer slide uses CSS transition only (no keyframes). Section cards lift slightly on hover:
+```css
+.section-card:hover { transform: translateY(-2px); box-shadow: 0 8px 32px rgba(0,0,0,0.4); }
+```
+
+Reduced motion guard:
 ```css
 @media (prefers-reduced-motion: reduce) {
-  *, *::before, *::after { animation: none !important; transition: none !important; }
+  *, *::before, *::after { animation: none !important; transition-duration: 0.01ms !important; }
 }
 ```
 
@@ -264,27 +287,39 @@ Guard all animations:
 
 ### Page Chrome
 
-**Top:** Environment name in small muted text, centered, `font-size: 0.75rem`, `color: #334155`, `letter-spacing: 0.08em`, `margin-bottom: 32px`.
+**Top of page** — above the first card:
+```
+PRIME INTELLECT · ENVIRONMENT OVERVIEW          [environment-name]
+```
+`font-size: 0.68rem`, `color: #1e293b`, `letter-spacing: 0.1em`, `margin-bottom: 40px`. Nothing else at the top.
 
-**Bottom:** `Generated by Claude · Prime Intellect · <timestamp>` — `font-size: 0.68rem`, `color: #1e293b`, `margin-top: 28px`.
+**Bottom of page** — below the last card:
+```
+Generated by Claude · <timestamp>
+```
+`font-size: 0.65rem`, `color: #1e293b`, `margin-top: 48px`, centered.
 
-Nothing else. No nav, no sidebar, no header. The cards are the whole UI.
+Nothing else. No nav, no header, no sidebar.
 
 ---
 
 ## Step 3 — Confirm and report
 
-After writing the file:
-- Give the full path and `open environment_overview.html`
-- Two sentences: what the environment trains and how it scores
+After writing the file, share the full path and say:
+- What the environment trains (one sentence)
+- How it scores (one sentence)
 
-## Anti-patterns
+---
 
-- Do not dump all content at once — each card is one focused chapter
-- Do not truncate the example row — every field, every value, in full
-- Do not invent a GitHub URL — only include it if found in the source
-- Do not hallucinate reward weights, field names, or dataset content
-- Do not skip helper modules — they contain the core reward logic
-- Do not add tabs, sidebars, scroll-within-cards, or any structure beyond the 4-card deck
-- Do not use a light theme — dark only
-- Do not use Inter, Roboto, or any Google Font
+## Anti-patterns — never do these
+
+- **Do not write walls of text on the scan face.** Every section face is a diagram or a chart. Text labels only.
+- **Do not truncate the example row.** Full values, all fields, in the drawer.
+- **Do not invent a GitHub URL.** Only include it if found verbatim in source.
+- **Do not hallucinate field names, reward weights, or dataset content.** Extract exactly.
+- **Do not skip helper modules.** Core reward logic is often there.
+- **Do not use a light theme.**
+- **Do not use Inter, Roboto, or any Google Font.**
+- **Do not add tabs, nav, or scroll-within-cards.** The drawer is the only overlay.
+- **Do not add more than four sections.** Header + Dataset + Rewards + Rollout. That's it.
+- **Do not use a card-stack / deck reveal mechanic.** This is a scrollable single-column page.
