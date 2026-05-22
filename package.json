@@ -1,6 +1,6 @@
 {
   "name": "understanding-prime-env",
-  "version": "0.1.6",
+  "version": "0.1.7",
   "description": "Generate a rich, self-contained HTML report explaining any Prime Intellect verifiers environment.",
   "keywords": [
     "prime-intellect",
