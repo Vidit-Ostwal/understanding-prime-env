@@ -5,13 +5,12 @@
 const fs = require('fs');
 const path = require('path');
 const os = require('os');
-const readline = require('readline');
 
 const SKILL_NAME = 'understand-prime-env';
 const PACKAGE_ROOT = path.join(__dirname, '..');
 const SKILL_MD_PATH = path.join(PACKAGE_ROOT, 'skills', SKILL_NAME, 'SKILL.md');
 
-// ── helpers ──────────────────────────────────────────────────────────────────
+// ── helpers ───────────────────────────────────────────────────────────────────
 
 function readSkillRaw() {
   return fs.readFileSync(SKILL_MD_PATH, 'utf8');
@@ -37,8 +36,63 @@ function appendOrCreate(filePath, section) {
 
 function ok(msg)   { console.log('\x1b[32m✓\x1b[0m ' + msg); }
 function info(msg) { console.log('\x1b[36mℹ\x1b[0m ' + msg); }
-function warn(msg) { console.log('\x1b[33m⚠\x1b[0m ' + msg); }
 function fail(msg) { console.error('\x1b[31m✗\x1b[0m ' + msg); process.exit(1); }
+
+// ── arrow-key selector ────────────────────────────────────────────────────────
+
+function select(question, choices) {
+  return new Promise((resolve) => {
+    let cursor = 0;
+
+    const RESET  = '\x1b[0m';
+    const BOLD   = '\x1b[1m';
+    const ACCENT = '\x1b[35m';   // purple
+    const DIM    = '\x1b[2m';
+    const UP     = '\x1b[1A';
+    const CLEAR  = '\x1b[2K\r';
+
+    function render(first) {
+      if (!first) {
+        // move up past all choices + question line
+        process.stdout.write(UP.repeat(choices.length + 1));
+      }
+      process.stdout.write(`${CLEAR}${BOLD}${question}${RESET}\n`);
+      choices.forEach((c, i) => {
+        const active = i === cursor;
+        const pointer = active ? `${ACCENT}❯${RESET}` : ' ';
+        const label   = active ? `${BOLD}${c}${RESET}` : `${DIM}${c}${RESET}`;
+        process.stdout.write(`${CLEAR}  ${pointer}  ${label}\n`);
+      });
+    }
+
+    render(true);
+
+    process.stdin.setRawMode(true);
+    process.stdin.resume();
+    process.stdin.setEncoding('utf8');
+
+    function cleanup() {
+      process.stdin.setRawMode(false);
+      process.stdin.pause();
+      process.stdin.removeListener('data', onKey);
+    }
+
+    function onKey(key) {
+      if (key === '') { cleanup(); process.exit(0); }           // Ctrl+C
+      if (key === '[A' || key === 'k') cursor = (cursor - 1 + choices.length) % choices.length; // up
+      if (key === '[B' || key === 'j') cursor = (cursor + 1) % choices.length;                  // down
+      if (key === '\r' || key === '\n') {
+        cleanup();
+        process.stdout.write('\n');
+        resolve(cursor);
+        return;
+      }
+      render(false);
+    }
+
+    process.stdin.on('data', onKey);
+  });
+}
 
 // ── installers ────────────────────────────────────────────────────────────────
 
@@ -62,10 +116,9 @@ function installCursor() {
   const dest = path.join(process.cwd(), '.cursor', 'rules');
   ensureDir(dest);
   const outPath = path.join(dest, `${SKILL_NAME}.mdc`);
-  // Cursor MDC format: YAML front-matter + markdown body
   const mdc = [
     '---',
-    `description: understand-prime-env — generate HTML overview for a Prime Intellect verifiers environment`,
+    'description: understand-prime-env — generate HTML overview for a Prime Intellect verifiers environment',
     'globs:',
     '  - "**/*.py"',
     'alwaysApply: false',
@@ -81,7 +134,7 @@ function installCursor() {
 function installWindsurf() {
   const body = readSkillBody();
   const outPath = path.join(process.cwd(), '.windsurfrules');
-  const section = `# understand-environment\n\n${body}`;
+  const section = `# understand-prime-env\n\n${body}`;
   appendOrCreate(outPath, section);
   ok(`Windsurf  →  ${outPath}`);
 }
@@ -91,7 +144,7 @@ function installCopilot() {
   const dir = path.join(process.cwd(), '.github');
   ensureDir(dir);
   const outPath = path.join(dir, 'copilot-instructions.md');
-  const section = `# understand-environment\n\n${body}`;
+  const section = `# understand-prime-env\n\n${body}`;
   appendOrCreate(outPath, section);
   ok(`GitHub Copilot  →  ${outPath}`);
 }
@@ -111,7 +164,7 @@ function installZed() {
   const separator = existing ? '\n\n---\n\n' : '';
   settings.assistant = settings.assistant ?? {};
   settings.assistant.default_context = settings.assistant.default_context ?? {};
-  settings.assistant.default_context.custom_instructions = existing + separator + `# understand-environment\n\n${body}`;
+  settings.assistant.default_context.custom_instructions = existing + separator + `# understand-prime-env\n\n${body}`;
 
   fs.writeFileSync(settingsPath, JSON.stringify(settings, null, 2));
   ok(`Zed  →  ${settingsPath}`);
@@ -128,16 +181,16 @@ function installAll(isGlobal) {
 // ── CLI ───────────────────────────────────────────────────────────────────────
 
 const TOOLS = {
-  claude:   { label: 'Claude Code',     fn: (g) => installClaude(g) },
-  cursor:   { label: 'Cursor',          fn: () => installCursor() },
-  windsurf: { label: 'Windsurf',        fn: () => installWindsurf() },
-  copilot:  { label: 'GitHub Copilot',  fn: () => installCopilot() },
-  zed:      { label: 'Zed',             fn: () => installZed() },
-  all:      { label: 'All of the above',fn: (g) => installAll(g) },
+  claude:   { label: 'Claude Code',      fn: (g) => installClaude(g) },
+  cursor:   { label: 'Cursor',           fn: () => installCursor() },
+  windsurf: { label: 'Windsurf',         fn: () => installWindsurf() },
+  copilot:  { label: 'GitHub Copilot',   fn: () => installCopilot() },
+  zed:      { label: 'Zed',              fn: () => installZed() },
+  all:      { label: 'All of the above', fn: (g) => installAll(g) },
 };
 
 const HELP = `
-understand-environment installer
+understand-prime-env installer
 Usage: npx understanding-prime-env [tool] [options]
 
 Tools (optional — omit for interactive prompt):
@@ -167,21 +220,8 @@ function parseArgs() {
   return { tool, isGlobal };
 }
 
-async function prompt(question, choices) {
-  const rl = readline.createInterface({ input: process.stdin, output: process.stdout });
-  console.log('\n' + question);
-  choices.forEach((c, i) => console.log(`  ${i + 1}) ${c}`));
-  return new Promise((resolve) => {
-    rl.question('\nEnter number: ', (answer) => {
-      rl.close();
-      const idx = parseInt(answer, 10) - 1;
-      resolve(idx >= 0 && idx < choices.length ? idx : -1);
-    });
-  });
-}
-
 async function main() {
-  console.log('\n\x1b[1munderstand-environment\x1b[0m  ·  Prime Intellect verifiers skill\n');
+  console.log('\n\x1b[1munderstand-prime-env\x1b[0m  ·  Prime Intellect verifiers skill\n');
 
   const { tool, isGlobal } = parseArgs();
 
@@ -190,20 +230,18 @@ async function main() {
     return;
   }
 
-  // interactive
-  const keys    = Object.keys(TOOLS);
-  const labels  = keys.map(k => TOOLS[k].label);
-  const idx     = await prompt('Which editor / CLI tool do you want to install for?', labels);
-  if (idx === -1) { fail('Invalid selection.'); }
+  const keys   = Object.keys(TOOLS);
+  const labels = keys.map(k => TOOLS[k].label);
 
+  const idx = await select('Which editor / CLI tool do you want to install for?', labels);
   const chosen = keys[idx];
   let global = isGlobal;
 
   if (chosen === 'claude' || chosen === 'all') {
-    const scopeIdx = await prompt(
-      'Install scope for Claude Code:',
-      ['Global  (~/.claude/skills/ — available everywhere)', 'Local   (.claude/skills/ — this project only)']
-    );
+    const scopeIdx = await select('Install scope for Claude Code:', [
+      'Global  (~/.claude/skills/ — available everywhere)',
+      'Local   (.claude/skills/  — this project only)',
+    ]);
     global = scopeIdx === 0;
   }
 
