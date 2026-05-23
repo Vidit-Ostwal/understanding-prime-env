@@ -1,5 +1,5 @@
 ---
-name: understand-prime-env
+name: understanding-prime-env
 description: Generate a rich, self-contained HTML report that fully explains a Prime Intellect verifiers environment. Use this skill any time the user asks to understand, explain, document, visualize, or explore a verifiers environment — even if they just say "what does this environment do?", "explain this env", "give me an overview", or "generate an HTML for this environment". The skill reads the Python source files in the current directory, extracts the dataset, reward functions, and rollout logic, and writes a visually stunning infographic-style HTML file to the environment folder.
 ---
 
